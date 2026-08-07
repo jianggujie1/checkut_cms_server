@@ -35,5 +35,6 @@ go.work.sum
 .DS_Store
 
 BACKEND.md
+openapi.json
 
 .ua/
