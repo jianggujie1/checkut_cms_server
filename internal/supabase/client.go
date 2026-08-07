@@ -144,6 +144,7 @@ func (c *Client) Upload(ctx context.Context, key string, contentType string, con
 		return "", err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.key)
+	req.Header.Set("apikey", c.key)
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("x-upsert", "true")
 	resp, err := c.http.Do(req)

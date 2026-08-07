@@ -47,7 +47,7 @@ func (s *SyncService) Import(ctx context.Context) (*model.ImportResult, error) {
 
 	importSteps := []struct {
 		name string
-		fn   func(context.Context) error
+		fn   func(context.Context) (int, error)
 	}{
 		{"destinations", s.importDestinations},
 		{"attractions", s.importAttractions},
@@ -57,9 +57,12 @@ func (s *SyncService) Import(ctx context.Context) (*model.ImportResult, error) {
 	}
 
 	for _, step := range importSteps {
-		if err := step.fn(ctx); err != nil {
+		n, err := step.fn(ctx)
+		if err != nil {
 			res.Errors = append(res.Errors, fmt.Sprintf("%s: %v", step.name, err))
+			continue
 		}
+		res.Imported[step.name] = n
 	}
 
 	if len(res.Errors) == 0 {
@@ -70,10 +73,10 @@ func (s *SyncService) Import(ctx context.Context) (*model.ImportResult, error) {
 	return res, nil
 }
 
-func (s *SyncService) importDestinations(ctx context.Context) error {
+func (s *SyncService) importDestinations(ctx context.Context) (int, error) {
 	var rows []model.Destination
 	if err := s.supa.FetchAll(ctx, "destinations", "*", &rows); err != nil {
-		return err
+		return 0, err
 	}
 	for i := range rows {
 		d := &rows[i]
@@ -81,16 +84,16 @@ func (s *SyncService) importDestinations(ctx context.Context) error {
 			d.Status = model.StatusPublished
 		}
 		if err := s.repo.ImportDestination(ctx, d); err != nil {
-			return err
+			return 0, err
 		}
 	}
-	return nil
+	return len(rows), nil
 }
 
-func (s *SyncService) importAttractions(ctx context.Context) error {
+func (s *SyncService) importAttractions(ctx context.Context) (int, error) {
 	var rows []model.Attraction
 	if err := s.supa.FetchAll(ctx, "attractions", "*", &rows); err != nil {
-		return err
+		return 0, err
 	}
 	for i := range rows {
 		a := &rows[i]
@@ -98,16 +101,16 @@ func (s *SyncService) importAttractions(ctx context.Context) error {
 			a.Status = model.StatusPublished
 		}
 		if err := s.repo.ImportAttraction(ctx, a); err != nil {
-			return err
+			return 0, err
 		}
 	}
-	return nil
+	return len(rows), nil
 }
 
-func (s *SyncService) importItineraries(ctx context.Context) error {
+func (s *SyncService) importItineraries(ctx context.Context) (int, error) {
 	var rows []model.Itinerary
 	if err := s.supa.FetchAll(ctx, "itineraries", "*", &rows); err != nil {
-		return err
+		return 0, err
 	}
 	for i := range rows {
 		it := &rows[i]
@@ -115,16 +118,16 @@ func (s *SyncService) importItineraries(ctx context.Context) error {
 			it.Status = model.StatusPublished
 		}
 		if err := s.repo.ImportItinerary(ctx, it); err != nil {
-			return err
+			return 0, err
 		}
 	}
-	return nil
+	return len(rows), nil
 }
 
-func (s *SyncService) importDays(ctx context.Context) error {
+func (s *SyncService) importDays(ctx context.Context) (int, error) {
 	var rows []model.ItineraryDay
 	if err := s.supa.FetchAll(ctx, "itinerary_days", "*", &rows); err != nil {
-		return err
+		return 0, err
 	}
 	for i := range rows {
 		d := &rows[i]
@@ -132,16 +135,16 @@ func (s *SyncService) importDays(ctx context.Context) error {
 			d.Status = model.StatusPublished
 		}
 		if err := s.repo.ImportDay(ctx, d); err != nil {
-			return err
+			return 0, err
 		}
 	}
-	return nil
+	return len(rows), nil
 }
 
-func (s *SyncService) importActivities(ctx context.Context) error {
+func (s *SyncService) importActivities(ctx context.Context) (int, error) {
 	var rows []model.ItineraryActivity
 	if err := s.supa.FetchAll(ctx, "itinerary_activities", "*", &rows); err != nil {
-		return err
+		return 0, err
 	}
 	for i := range rows {
 		a := &rows[i]
@@ -149,8 +152,8 @@ func (s *SyncService) importActivities(ctx context.Context) error {
 			a.Status = model.StatusPublished
 		}
 		if err := s.repo.ImportActivity(ctx, a); err != nil {
-			return err
+			return 0, err
 		}
 	}
-	return nil
+	return len(rows), nil
 }
