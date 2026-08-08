@@ -58,7 +58,6 @@ func main() {
 	uploadCtrl := controller.NewUploadController(uploadSvc)
 	syncCtrl := controller.NewSyncController(syncSvc)
 	pubCtrl := controller.NewPublishController(pubSvc)
-
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)

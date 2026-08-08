@@ -47,13 +47,14 @@ func (r *PublishRepo) ImportDestination(ctx context.Context, d *model.Destinatio
 
 func (r *PublishRepo) ImportAttraction(ctx context.Context, a *model.Attraction) error {
 	_, err := r.db.Exec(ctx,
-		`insert into attractions (id, destination_id, title, subtitle, image_url, duration, tag, status, created_at)
-		 values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+		`insert into attractions (id, destination_id, title, subtitle, image_url, images, video_url, latitude, longitude, duration, tag, source_url, status, created_at)
+		 values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
 		 on conflict (id) do update set
 		   destination_id=excluded.destination_id, title=excluded.title, subtitle=excluded.subtitle,
-		   image_url=excluded.image_url, duration=excluded.duration, tag=excluded.tag,
-		   status=excluded.status, deleted_at=null`,
-		a.ID, a.DestinationID, a.Title, a.Subtitle, a.ImageURL, a.Duration, a.Tag, a.Status, a.CreatedAt)
+		   image_url=excluded.image_url, images=excluded.images, video_url=excluded.video_url,
+		   latitude=excluded.latitude, longitude=excluded.longitude, duration=excluded.duration, tag=excluded.tag,
+		   source_url=excluded.source_url, status=excluded.status, deleted_at=null`,
+		a.ID, a.DestinationID, a.Title, a.Subtitle, a.ImageURL, a.Images, a.VideoURL, a.Latitude, a.Longitude, a.Duration, a.Tag, a.SourceURL, a.Status, a.CreatedAt)
 	return err
 }
 
@@ -71,27 +72,29 @@ func (r *PublishRepo) ImportItinerary(ctx context.Context, it *model.Itinerary) 
 
 func (r *PublishRepo) ImportDay(ctx context.Context, d *model.ItineraryDay) error {
 	_, err := r.db.Exec(ctx,
-		`insert into itinerary_days (id, itinerary_id, day_number, title, subtitle, image_url, status, created_at)
-		 values ($1,$2,$3,$4,$5,$6,$7,$8)
+		`insert into itinerary_days (id, itinerary_id, day_number, title, subtitle, image_url, route_line, status, created_at)
+		 values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 		 on conflict (id) do update set
 		   itinerary_id=excluded.itinerary_id, day_number=excluded.day_number, title=excluded.title,
-		   subtitle=excluded.subtitle, image_url=excluded.image_url, status=excluded.status, deleted_at=null`,
-		d.ID, d.ItineraryID, d.DayNumber, d.Title, d.Subtitle, d.ImageURL, d.Status, d.CreatedAt)
+		   subtitle=excluded.subtitle, image_url=excluded.image_url, route_line=excluded.route_line, status=excluded.status, deleted_at=null`,
+		d.ID, d.ItineraryID, d.DayNumber, d.Title, d.Subtitle, d.ImageURL, d.RouteLine, d.Status, d.CreatedAt)
 	return err
 }
 
 func (r *PublishRepo) ImportActivity(ctx context.Context, a *model.ItineraryActivity) error {
 	_, err := r.db.Exec(ctx,
-		`insert into itinerary_activities (id, day_id, attraction_id, time, title, location, description, tip, status, created_at)
-		 values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+		`insert into itinerary_activities (id, day_id, attraction_id, time, title, location, description, tip, images, video_url, latitude, longitude, poi_info, source_url, status, created_at)
+		 values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
 		 on conflict (id) do update set
 		   day_id=excluded.day_id, attraction_id=excluded.attraction_id, time=excluded.time,
 		   title=excluded.title, location=excluded.location, description=excluded.description,
-		   tip=excluded.tip, status=excluded.status, deleted_at=null`,
-		a.ID, a.DayID, a.AttractionID, a.Time, a.Title, a.Location, a.Description, a.Tip, a.Status, a.CreatedAt)
+		   tip=excluded.tip, images=excluded.images, video_url=excluded.video_url,
+		   latitude=excluded.latitude, longitude=excluded.longitude, poi_info=excluded.poi_info,
+		   source_url=excluded.source_url, status=excluded.status, deleted_at=null`,
+		a.ID, a.DayID, a.AttractionID, a.Time, a.Title, a.Location, a.Description, a.Tip,
+		a.Images, a.VideoURL, a.Latitude, a.Longitude, a.POIInfo, a.SourceURL, a.Status, a.CreatedAt)
 	return err
 }
-
 func (r *PublishRepo) AllDestinations(ctx context.Context) ([]*model.Destination, error) {
 	rows, err := r.db.Query(ctx, "select "+destinationCols+" from destinations")
 	if err != nil {

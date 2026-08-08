@@ -43,8 +43,13 @@ type Attraction struct {
 	Title         string     `json:"title"`
 	Subtitle      *string    `json:"subtitle"`
 	ImageURL      *string    `json:"image_url"`
+	Images        []string   `json:"images"`
+	VideoURL      *string    `json:"video_url"`
+	Latitude      *float64   `json:"latitude"`
+	Longitude     *float64   `json:"longitude"`
 	Duration      *string    `json:"duration"`
 	Tag           *string    `json:"tag"`
+	SourceURL     *string    `json:"source_url"`
 	Status        string     `json:"status"`
 	CreatedAt     *time.Time `json:"created_at"`
 	UpdatedAt     *time.Time `json:"updated_at"`
@@ -72,6 +77,7 @@ type ItineraryDay struct {
 	Title       *string    `json:"title"`
 	Subtitle    *string    `json:"subtitle"`
 	ImageURL    *string    `json:"image_url"`
+	RouteLine   []any      `json:"route_line"`
 	Status      string     `json:"status"`
 	CreatedAt   *time.Time `json:"created_at"`
 	UpdatedAt   *time.Time `json:"updated_at"`
@@ -79,18 +85,24 @@ type ItineraryDay struct {
 }
 
 type ItineraryActivity struct {
-	ID           string     `json:"id"`
-	DayID        string     `json:"day_id"`
-	AttractionID *string    `json:"attraction_id"`
-	Time         *string    `json:"time"`
-	Title        string     `json:"title"`
-	Location     *string    `json:"location"`
-	Description  *string    `json:"description"`
-	Tip          *string    `json:"tip"`
-	Status       string     `json:"status"`
-	CreatedAt    *time.Time `json:"created_at"`
-	UpdatedAt    *time.Time `json:"updated_at"`
-	DeletedAt    *time.Time `json:"deleted_at"`
+	ID           string         `json:"id"`
+	DayID        string         `json:"day_id"`
+	AttractionID *string        `json:"attraction_id"`
+	Time         *string        `json:"time"`
+	Title        string         `json:"title"`
+	Location     *string        `json:"location"`
+	Description  *string        `json:"description"`
+	Tip          *string        `json:"tip"`
+	Images       []string       `json:"images"`
+	VideoURL     *string        `json:"video_url"`
+	Latitude     *float64       `json:"latitude"`
+	Longitude    *float64       `json:"longitude"`
+	POIInfo      map[string]any `json:"poi_info"`
+	SourceURL    *string        `json:"source_url"`
+	Status       string         `json:"status"`
+	CreatedAt    *time.Time     `json:"created_at"`
+	UpdatedAt    *time.Time     `json:"updated_at"`
+	DeletedAt    *time.Time     `json:"deleted_at"`
 }
 
 // ItineraryWithTree is the nested shape for GET /itineraries/:id and PUT.

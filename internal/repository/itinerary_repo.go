@@ -32,12 +32,12 @@ func scanItinerary(row pgx.Row) (*model.Itinerary, error) {
 	return &it, nil
 }
 
-const dayCols = `id, itinerary_id, day_number, title, subtitle, image_url, status, created_at, updated_at, deleted_at`
+const dayCols = `id, itinerary_id, day_number, title, subtitle, image_url, route_line, status, created_at, updated_at, deleted_at`
 
 func scanDay(row pgx.Row) (*model.ItineraryDay, error) {
 	var d model.ItineraryDay
 	err := row.Scan(
-		&d.ID, &d.ItineraryID, &d.DayNumber, &d.Title, &d.Subtitle, &d.ImageURL,
+		&d.ID, &d.ItineraryID, &d.DayNumber, &d.Title, &d.Subtitle, &d.ImageURL, &d.RouteLine,
 		&d.Status, &d.CreatedAt, &d.UpdatedAt, &d.DeletedAt,
 	)
 	if err != nil {
@@ -46,12 +46,13 @@ func scanDay(row pgx.Row) (*model.ItineraryDay, error) {
 	return &d, nil
 }
 
-const activityCols = `id, day_id, attraction_id, time, title, location, description, tip, status, created_at, updated_at, deleted_at`
+const activityCols = `id, day_id, attraction_id, time, title, location, description, tip, images, video_url, latitude, longitude, poi_info, source_url, status, created_at, updated_at, deleted_at`
 
 func scanActivity(row pgx.Row) (*model.ItineraryActivity, error) {
 	var a model.ItineraryActivity
 	err := row.Scan(
 		&a.ID, &a.DayID, &a.AttractionID, &a.Time, &a.Title, &a.Location, &a.Description, &a.Tip,
+		&a.Images, &a.VideoURL, &a.Latitude, &a.Longitude, &a.POIInfo, &a.SourceURL,
 		&a.Status, &a.CreatedAt, &a.UpdatedAt, &a.DeletedAt,
 	)
 	if err != nil {
@@ -247,31 +248,31 @@ func (r *ItineraryRepo) UpsertItineraryForImport(ctx context.Context, it *model.
 		it.ID, it.UserID, it.DestinationID, it.Title, it.TotalDays, it.CitiesCount, it.ActivitiesCount, it.Status, it.CreatedAt)
 	return err
 }
-
 func (r *ItineraryRepo) UpsertDayForImport(ctx context.Context, d *model.ItineraryDay) error {
 	_, err := r.db.Exec(ctx,
-		`insert into itinerary_days (id, itinerary_id, day_number, title, subtitle, image_url, status, created_at)
-		 values ($1,$2,$3,$4,$5,$6,$7,$8)
+		`insert into itinerary_days (id, itinerary_id, day_number, title, subtitle, image_url, route_line, status, created_at)
+		 values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 		 on conflict (id) do update set
 		   itinerary_id=excluded.itinerary_id, day_number=excluded.day_number, title=excluded.title,
-		   subtitle=excluded.subtitle, image_url=excluded.image_url, status=excluded.status, deleted_at=null`,
-		d.ID, d.ItineraryID, d.DayNumber, d.Title, d.Subtitle, d.ImageURL, d.Status, d.CreatedAt)
+		   subtitle=excluded.subtitle, image_url=excluded.image_url, route_line=excluded.route_line, status=excluded.status, deleted_at=null`,
+		d.ID, d.ItineraryID, d.DayNumber, d.Title, d.Subtitle, d.ImageURL, d.RouteLine, d.Status, d.CreatedAt)
 	return err
 }
 
 func (r *ItineraryRepo) UpsertActivityForImport(ctx context.Context, a *model.ItineraryActivity) error {
 	_, err := r.db.Exec(ctx,
-		`insert into itinerary_activities (id, day_id, attraction_id, time, title, location, description, tip, status, created_at)
-		 values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+		`insert into itinerary_activities (id, day_id, attraction_id, time, title, location, description, tip, images, video_url, latitude, longitude, poi_info, source_url, status, created_at)
+		 values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
 		 on conflict (id) do update set
 		   day_id=excluded.day_id, attraction_id=excluded.attraction_id, time=excluded.time,
 		   title=excluded.title, location=excluded.location, description=excluded.description,
-		   tip=excluded.tip, status=excluded.status, deleted_at=null`,
-		a.ID, a.DayID, a.AttractionID, a.Time, a.Title, a.Location, a.Description, a.Tip, a.Status, a.CreatedAt)
+		   tip=excluded.tip, images=excluded.images, video_url=excluded.video_url,
+		   latitude=excluded.latitude, longitude=excluded.longitude, poi_info=excluded.poi_info,
+		   source_url=excluded.source_url, status=excluded.status, deleted_at=null`,
+		a.ID, a.DayID, a.AttractionID, a.Time, a.Title, a.Location, a.Description, a.Tip,
+		a.Images, a.VideoURL, a.Latitude, a.Longitude, a.POIInfo, a.SourceURL, a.Status, a.CreatedAt)
 	return err
 }
-
-// ---- tree create / apply ----
 
 // CreateTree inserts an itinerary plus its days and activities. It assigns ids and
 // renumbers day_number (1-based), recomputing counters. Returns the stored tree.
@@ -309,11 +310,11 @@ func (r *ItineraryRepo) CreateTree(ctx context.Context, incoming *model.Itinerar
 		day.ItineraryID = stored.ID
 		var sday model.ItineraryDay
 		err := tx.QueryRow(ctx,
-			`insert into itinerary_days (itinerary_id, day_number, title, subtitle, image_url, status)
-			 values ($1,$2,$3,$4,$5,$6) returning `+dayCols,
-			day.ItineraryID, day.DayNumber, day.Title, day.Subtitle, day.ImageURL, day.Status,
+			`insert into itinerary_days (itinerary_id, day_number, title, subtitle, image_url, route_line, status)
+			 values ($1,$2,$3,$4,$5,$6,$7) returning `+dayCols,
+			day.ItineraryID, day.DayNumber, day.Title, day.Subtitle, day.ImageURL, day.RouteLine, day.Status,
 		).Scan(
-			&sday.ID, &sday.ItineraryID, &sday.DayNumber, &sday.Title, &sday.Subtitle, &sday.ImageURL,
+			&sday.ID, &sday.ItineraryID, &sday.DayNumber, &sday.Title, &sday.Subtitle, &sday.ImageURL, &sday.RouteLine,
 			&sday.Status, &sday.CreatedAt, &sday.UpdatedAt, &sday.DeletedAt,
 		)
 		if err != nil {
@@ -327,11 +328,13 @@ func (r *ItineraryRepo) CreateTree(ctx context.Context, incoming *model.Itinerar
 			act.DayID = sday.ID
 			var sa model.ItineraryActivity
 			err := tx.QueryRow(ctx,
-				`insert into itinerary_activities (day_id, attraction_id, time, title, location, description, tip, status)
-				 values ($1,$2,$3,$4,$5,$6,$7,$8) returning `+activityCols,
-				act.DayID, act.AttractionID, act.Time, act.Title, act.Location, act.Description, act.Tip, act.Status,
+				`insert into itinerary_activities (day_id, attraction_id, time, title, location, description, tip, images, video_url, latitude, longitude, poi_info, source_url, status)
+				 values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) returning `+activityCols,
+				act.DayID, act.AttractionID, act.Time, act.Title, act.Location, act.Description, act.Tip,
+				act.Images, act.VideoURL, act.Latitude, act.Longitude, act.POIInfo, act.SourceURL, act.Status,
 			).Scan(
 				&sa.ID, &sa.DayID, &sa.AttractionID, &sa.Time, &sa.Title, &sa.Location, &sa.Description, &sa.Tip,
+				&sa.Images, &sa.VideoURL, &sa.Latitude, &sa.Longitude, &sa.POIInfo, &sa.SourceURL,
 				&sa.Status, &sa.CreatedAt, &sa.UpdatedAt, &sa.DeletedAt,
 			)
 			if err != nil {
@@ -356,13 +359,11 @@ func (r *ItineraryRepo) ApplyTreePlan(ctx context.Context, plan *TreePlan) error
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
-
 	for _, d := range plan.DaysToUpdate {
 		if _, err := tx.Exec(ctx,
-			`update itinerary_days set day_number=$1, title=$2, subtitle=$3, image_url=$4
-			 where id=$5 and deleted_at is null`,
-			d.DayNumber, d.Title, d.Subtitle, d.ImageURL, d.ID); err != nil {
+			`update itinerary_days set day_number=$1, title=$2, subtitle=$3, image_url=$4, route_line=$5
+			 where id=$6 and deleted_at is null`,
+			d.DayNumber, d.Title, d.Subtitle, d.ImageURL, d.RouteLine, d.ID); err != nil {
 			return err
 		}
 	}
@@ -380,9 +381,9 @@ func (r *ItineraryRepo) ApplyTreePlan(ctx context.Context, plan *TreePlan) error
 	}
 	for _, d := range plan.DaysToInsert {
 		if _, err := tx.Exec(ctx,
-			`insert into itinerary_days (id, itinerary_id, day_number, title, subtitle, image_url, status)
-			 values ($1,$2,$3,$4,$5,$6,$7) on conflict (id) do nothing`,
-			d.ID, plan.ItineraryID, d.DayNumber, d.Title, d.Subtitle, d.ImageURL, d.Status); err != nil {
+			`insert into itinerary_days (id, itinerary_id, day_number, title, subtitle, image_url, route_line, status)
+			 values ($1,$2,$3,$4,$5,$6,$7,$8) on conflict (id) do nothing`,
+			d.ID, plan.ItineraryID, d.DayNumber, d.Title, d.Subtitle, d.ImageURL, d.RouteLine, d.Status); err != nil {
 			return err
 		}
 	}
@@ -395,17 +396,17 @@ func (r *ItineraryRepo) ApplyTreePlan(ctx context.Context, plan *TreePlan) error
 	}
 	for _, a := range plan.ActivitiesToUpdate {
 		if _, err := tx.Exec(ctx,
-			`update itinerary_activities set day_id=$1, attraction_id=$2, time=$3, title=$4, location=$5, description=$6, tip=$7
-			 where id=$8 and deleted_at is null`,
-			a.DayID, a.AttractionID, a.Time, a.Title, a.Location, a.Description, a.Tip, a.ID); err != nil {
+			`update itinerary_activities set day_id=$1, attraction_id=$2, time=$3, title=$4, location=$5, description=$6, tip=$7, images=$8, video_url=$9, latitude=$10, longitude=$11, poi_info=$12, source_url=$13
+			 where id=$14 and deleted_at is null`,
+			a.DayID, a.AttractionID, a.Time, a.Title, a.Location, a.Description, a.Tip, a.Images, a.VideoURL, a.Latitude, a.Longitude, a.POIInfo, a.SourceURL, a.ID); err != nil {
 			return err
 		}
 	}
 	for _, a := range plan.ActivitiesToInsert {
 		if _, err := tx.Exec(ctx,
-			`insert into itinerary_activities (id, day_id, attraction_id, time, title, location, description, tip, status)
-			 values ($1,$2,$3,$4,$5,$6,$7,$8,$9) on conflict (id) do nothing`,
-			a.ID, a.DayID, a.AttractionID, a.Time, a.Title, a.Location, a.Description, a.Tip, a.Status); err != nil {
+			`insert into itinerary_activities (id, day_id, attraction_id, time, title, location, description, tip, images, video_url, latitude, longitude, poi_info, source_url, status)
+			 values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) on conflict (id) do nothing`,
+			a.ID, a.DayID, a.AttractionID, a.Time, a.Title, a.Location, a.Description, a.Tip, a.Images, a.VideoURL, a.Latitude, a.Longitude, a.POIInfo, a.SourceURL, a.Status); err != nil {
 			return err
 		}
 	}
