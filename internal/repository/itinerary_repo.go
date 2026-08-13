@@ -177,8 +177,8 @@ func (r *ItineraryRepo) GetWithTree(ctx context.Context, id string) (*model.Itin
 // UpdateScalars persists the itinerary-level editable fields (title, destination_id).
 func (r *ItineraryRepo) UpdateScalars(ctx context.Context, it *model.Itinerary) error {
 	tag, err := r.db.Exec(ctx,
-		`update itineraries set title=$1, destination_id=$2 where id=$3 and deleted_at is null`,
-		it.Title, it.DestinationID, it.ID)
+		`update itineraries set title=$1, destination_id=$2, cities_count=$3, updated_at=now() where id=$4 and deleted_at is null`,
+		it.Title, it.DestinationID, FormatCitiesCount(it.CitiesCount), it.ID)
 	if err != nil {
 		return err
 	}
@@ -418,10 +418,9 @@ func (r *ItineraryRepo) ApplyTreePlan(ctx context.Context, plan *TreePlan) error
 	}
 
 	if _, err := tx.Exec(ctx,
-		`update itineraries set total_days=$1, activities_count=$2 where id=$3`,
-		plan.TotalDays, plan.ActivitiesCount, plan.ItineraryID); err != nil {
+		`update itineraries set total_days=$1, activities_count=$2, cities_count=$3, updated_at=now() where id=$4`,
+		plan.TotalDays, plan.ActivitiesCount, plan.CitiesCount, plan.ItineraryID); err != nil {
 		return err
 	}
-
 	return tx.Commit(ctx)
 }

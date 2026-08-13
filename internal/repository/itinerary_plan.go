@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"checkut-cms-server/internal/model"
 )
@@ -48,6 +49,7 @@ func PrepareTree(in *model.ItineraryWithTree) (*model.ItineraryWithTree, error) 
 	}
 	out.TotalDays = intToPtr(totalDays)
 	out.ActivitiesCount = intToPtr(activitiesCount)
+	out.CitiesCount = FormatCitiesCount(in.CitiesCount)
 	return &out, nil
 }
 
@@ -63,6 +65,7 @@ type TreePlan struct {
 	ActivitiesToUpdate  []*model.ItineraryActivity
 	ActivitiesToDelete  []string
 	TotalDays           *string
+	CitiesCount         *string
 	ActivitiesCount     *string
 }
 
@@ -145,7 +148,29 @@ func ReconcileTree(current, incoming *model.ItineraryWithTree) *TreePlan {
 
 	plan.TotalDays = intToPtr(totalDays)
 	plan.ActivitiesCount = intToPtr(activitiesCount)
+	plan.CitiesCount = FormatCitiesCount(incoming.CitiesCount)
 	return plan
+}
+
+func FormatCitiesCount(s *string) *string {
+	if s == nil {
+		return nil
+	}
+	str := strings.TrimSpace(*s)
+	if str == "" {
+		return nil
+	}
+	var digits strings.Builder
+	for _, r := range str {
+		if r >= '0' && r <= '9' {
+			digits.WriteRune(r)
+		}
+	}
+	if digits.Len() > 0 {
+		res := digits.String()
+		return &res
+	}
+	return &str
 }
 
 func intToPtr(n int) *string {

@@ -124,3 +124,24 @@ func TestPrepareTree_assigns_ids_and_renumbers(t *testing.T) {
 		t.Fatalf("counters = %s/%s, want 2/1", *out.TotalDays, *out.ActivitiesCount)
 	}
 }
+func TestFormatCitiesCount_PureNumbers(t *testing.T) {
+	c1 := "1"
+	if got := FormatCitiesCount(&c1); got == nil || *got != "1" {
+		t.Fatalf("got %v, want 1", strOrNil(got))
+	}
+	c2 := "1 City"
+	if got := FormatCitiesCount(&c2); got == nil || *got != "1" {
+		t.Fatalf("got %v, want 1", strOrNil(got))
+	}
+	c3 := "2 Cities"
+	if got := FormatCitiesCount(&c3); got == nil || *got != "2" {
+		t.Fatalf("got %v, want 2", strOrNil(got))
+	}
+}
+
+func strOrNil(s *string) string {
+	if s == nil {
+		return "<nil>"
+	}
+	return *s
+}
