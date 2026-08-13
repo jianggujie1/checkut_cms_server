@@ -1,6 +1,8 @@
 package service
 
 import (
+	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -91,3 +93,51 @@ func TestDiffGroup_splitsGroups(t *testing.T) {
 		t.Fatalf("deleted = %+v", g.Deleted)
 	}
 }
+func TestSupaPayload_OmitsStatus(t *testing.T) {
+	dests := []*model.Destination{{ID: "d1", Title: "Dest 1", Status: model.StatusPublished}}
+	b, err := json.Marshal(toSupaDestinations(dests))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(b), `"status"`) {
+		t.Fatalf("supaDestination json contains status: %s", string(b))
+	}
+
+	attrs := []*model.Attraction{{ID: "a1", Title: "Attr 1", Status: model.StatusPublished}}
+	b, err = json.Marshal(toSupaAttractions(attrs))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(b), `"status"`) {
+		t.Fatalf("supaAttraction json contains status: %s", string(b))
+	}
+
+	its := []*model.Itinerary{{ID: "i1", Title: "It 1", Status: model.StatusPublished}}
+	b, err = json.Marshal(toSupaItineraries(its))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(b), `"status"`) {
+		t.Fatalf("supaItinerary json contains status: %s", string(b))
+	}
+
+	days := []*model.ItineraryDay{{ID: "day1", Title: strPtr("Day 1"), Status: model.StatusPublished}}
+	b, err = json.Marshal(toSupaDays(days))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(b), `"status"`) {
+		t.Fatalf("supaItineraryDay json contains status: %s", string(b))
+	}
+
+	acts := []*model.ItineraryActivity{{ID: "act1", Title: "Act 1", Status: model.StatusPublished}}
+	b, err = json.Marshal(toSupaActs(acts))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(b), `"status"`) {
+		t.Fatalf("supaItineraryActivity json contains status: %s", string(b))
+	}
+}
+
+func strPtr(s string) *string { return &s }

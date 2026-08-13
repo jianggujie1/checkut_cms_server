@@ -208,10 +208,13 @@ func (s *PublishService) Run(ctx context.Context) (*model.PublishResult, error) 
 	}
 	upsertDests := pickDestinations(destByID, diff.Destinations.Created, diff.Destinations.Updated)
 	if len(upsertDests) > 0 {
-		if err := s.supa.Upsert(ctx, "destinations", upsertDests); err != nil {
+		if err := s.supa.Upsert(ctx, "destinations", toSupaDestinations(upsertDests)); err != nil {
 			errf("destinations", err)
 		} else {
 			res.Applied["destinations"] = len(upsertDests)
+			for _, d := range upsertDests {
+				destSupabase[d.ID] = true
+			}
 		}
 	}
 	for _, c := range diff.Destinations.Deleted {
@@ -225,14 +228,14 @@ func (s *PublishService) Run(ctx context.Context) (*model.PublishResult, error) 
 	upsertAttrs := pickAttractions(attrByID, diff.Attractions.Created, diff.Attractions.Updated)
 	upsertAttrs = filterAttrsByParent(upsertAttrs, destSupabase)
 	if len(upsertAttrs) > 0 {
-		if err := s.supa.Upsert(ctx, "attractions", upsertAttrs); err != nil {
+		if err := s.supa.Upsert(ctx, "attractions", toSupaAttractions(upsertAttrs)); err != nil {
 			errf("attractions", err)
 		} else {
 			res.Applied["attractions"] = len(upsertAttrs)
 		}
 	}
 	for _, c := range diff.Attractions.Deleted {
-		if err := s.supa.DeleteByIDs(ctx, "attractions", []string{c.ID}); err != nil {
+		if err := s.supa.DeleteByIDs(ctx, "attractions", []string{toValidUUID(c.ID)}); err != nil {
 			errf("attractions", err)
 		}
 	}
@@ -241,7 +244,7 @@ func (s *PublishService) Run(ctx context.Context) (*model.PublishResult, error) 
 	itByID := indexItineraries(data.its)
 	upsertIts := pickItineraries(itByID, diff.Itineraries.Created, diff.Itineraries.Updated)
 	if len(upsertIts) > 0 {
-		if err := s.supa.Upsert(ctx, "itineraries", upsertIts); err != nil {
+		if err := s.supa.Upsert(ctx, "itineraries", toSupaItineraries(upsertIts)); err != nil {
 			errf("itineraries", err)
 		} else {
 			res.Applied["itineraries"] = len(upsertIts)
@@ -268,28 +271,28 @@ func (s *PublishService) Run(ctx context.Context) (*model.PublishResult, error) 
 	dayByID := indexDays(data.days)
 	upsertDays := pickDays(dayByID, diff.ItineraryDays.Created, diff.ItineraryDays.Updated)
 	if len(upsertDays) > 0 {
-		if err := s.supa.Upsert(ctx, "itinerary_days", upsertDays); err != nil {
+		if err := s.supa.Upsert(ctx, "itinerary_days", toSupaDays(upsertDays)); err != nil {
 			errf("itinerary_days", err)
 		} else {
 			res.Applied["itinerary_days"] = len(upsertDays)
 		}
 	}
 	for _, c := range diff.ItineraryDays.Deleted {
-		if err := s.supa.DeleteByIDs(ctx, "itinerary_days", []string{c.ID}); err != nil {
+		if err := s.supa.DeleteByIDs(ctx, "itinerary_days", []string{toValidUUID(c.ID)}); err != nil {
 			errf("itinerary_days", err)
 		}
 	}
 	actByID := indexActs(data.acts)
 	upsertActs := pickActs(actByID, diff.ItineraryActivities.Created, diff.ItineraryActivities.Updated)
 	if len(upsertActs) > 0 {
-		if err := s.supa.Upsert(ctx, "itinerary_activities", upsertActs); err != nil {
+		if err := s.supa.Upsert(ctx, "itinerary_activities", toSupaActs(upsertActs)); err != nil {
 			errf("itinerary_activities", err)
 		} else {
 			res.Applied["itinerary_activities"] = len(upsertActs)
 		}
 	}
 	for _, c := range diff.ItineraryActivities.Deleted {
-		if err := s.supa.DeleteByIDs(ctx, "itinerary_activities", []string{c.ID}); err != nil {
+		if err := s.supa.DeleteByIDs(ctx, "itinerary_activities", []string{toValidUUID(c.ID)}); err != nil {
 			errf("itinerary_activities", err)
 		}
 	}
