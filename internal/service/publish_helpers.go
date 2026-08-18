@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
+	"strings"
 	"time"
 
 	"checkut-cms-server/internal/model"
@@ -280,6 +281,28 @@ type supaItineraryActivity struct {
 	DeletedAt    *time.Time     `json:"deleted_at"`
 }
 
+func ensureImageURL(img *string, images []string) *string {
+	if img != nil && strings.TrimSpace(*img) != "" {
+		return img
+	}
+	for _, u := range images {
+		if strings.TrimSpace(u) != "" {
+			trimmed := strings.TrimSpace(u)
+			return &trimmed
+		}
+	}
+	empty := ""
+	return &empty
+}
+
+func ensureDayImageURL(img *string) *string {
+	if img != nil && strings.TrimSpace(*img) != "" {
+		return img
+	}
+	empty := ""
+	return &empty
+}
+
 func toSupaDestinations(in []*model.Destination) []supaDestination {
 	out := make([]supaDestination, len(in))
 	for i, d := range in {
@@ -290,7 +313,7 @@ func toSupaDestinations(in []*model.Destination) []supaDestination {
 			Continent:    d.Continent,
 			Rating:       d.Rating,
 			ReviewsCount: d.ReviewsCount,
-			ImageURL:     d.ImageURL,
+			ImageURL:     ensureDayImageURL(d.ImageURL),
 			Description:  d.Description,
 			Tags:         d.Tags,
 			BestTime:     d.BestTime,
@@ -311,7 +334,7 @@ func toSupaAttractions(in []*model.Attraction) []supaAttraction {
 			DestinationID: a.DestinationID,
 			Title:         a.Title,
 			Subtitle:      a.Subtitle,
-			ImageURL:      a.ImageURL,
+			ImageURL:      ensureImageURL(a.ImageURL, a.Images),
 			Images:        a.Images,
 			VideoURL:      a.VideoURL,
 			Latitude:      a.Latitude,
@@ -355,7 +378,7 @@ func toSupaDays(in []*model.ItineraryDay) []supaItineraryDay {
 			DayNumber:   d.DayNumber,
 			Title:       d.Title,
 			Subtitle:    d.Subtitle,
-			ImageURL:    d.ImageURL,
+			ImageURL:    ensureDayImageURL(d.ImageURL),
 			RouteLine:   d.RouteLine,
 			CreatedAt:   d.CreatedAt,
 			UpdatedAt:   d.UpdatedAt,

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+  "mcpServers": {
+    "dbx": {
+      "type": "stdio",
+      "command": "/usr/local/Cellar/node/26.7.0/bin/node",
+      "args": [
+        "--",
+        "/usr/local/lib/node_modules/@dbx-app/mcp-server/bin/dbx-mcp-server.js"
+      ]
+    }
+  }
+}
